@@ -1,70 +1,222 @@
 library my_flutter_local_notify;
 
-import 'package:flutter/material.dart';
-import 'package:awesome_notifications/awesome_notifications.dart';
+import 'dart:convert';
 
-export 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:my_flutter/my_flutter.dart';
+import 'package:my_flutter_plugin/my_flutter_plugin.dart';
 
+/// 默认通知渠道，执行[LocalNotifyUtil.init]时自动初始化
+late final LocalNotifyChannel defaultNotifyChannel;
+
+typedef NotifyClickHandler = void Function(LocalNotifyMessageModel notifyChannel);
+
+/// 本地通知工具类，基于[flutter_local_notifications]插件，如果有离线通知需求请避免使用此插件。
 class LocalNotifyUtil {
   LocalNotifyUtil._();
 
-  /// 程序是否已获取通知权限，默认为null，当你执行requestPermission方法后将会更新状态，若用户拒绝权限，将返回false
-  static bool? hasPermission;
+  /// 插件实例，只有获取了通知权限才会进行初始化
+  static FlutterLocalNotificationsPlugin? instance;
 
-  static Future<void> init() async {
-    await AwesomeNotifications().initialize(
-      null,
-      [
-        NotificationChannel(
-          channelGroupKey: 'basic_channel_group',
-          channelKey: 'basic_channel1',
-          channelName: 'Basic notifications1',
-          channelDescription: 'Notification1 channel',
-          defaultColor: const Color(0xFF9D50DD),
-          ledColor: Colors.white,
-          channelShowBadge: true,
-          enableVibration: true,
+  /// 一个自增的消息id
+  static int currentMessageId = 0;
+
+  /// 记录创建的通知渠道次数
+  static int _notifyChannelCreateNum = 0;
+
+  /// 初始化本地通知
+  /// * clickHandlerFun 当用户点击系统通知时的回调函数
+  static Future<void> init(NotifyClickHandler clickHandlerFun) async {
+    if (await PermissionUtil.requestPermission(Permission.notification)) {
+      instance = FlutterLocalNotificationsPlugin();
+      const AndroidInitializationSettings androidSetting = AndroidInitializationSettings('@mipmap/ic_launcher');
+      DarwinInitializationSettings iosSetting = const DarwinInitializationSettings(
+        defaultPresentBanner: false,
+      );
+      await instance!.initialize(
+        InitializationSettings(
+          android: androidSetting,
+          iOS: iosSetting,
         ),
-        NotificationChannel(
-          channelGroupKey: 'basic_channel_group',
-          channelKey: 'basic_channel2',
-          channelName: 'Basic notifications2',
-          channelDescription: 'Notification2 channel',
-          defaultColor: const Color(0xFF9D50DD),
-          channelShowBadge: true,
-          enableVibration: true,
-        ),
-        NotificationChannel(
-          channelGroupKey: 'system_channel_group',
-          channelKey: 'system_channel',
-          channelName: '系统通知',
-          channelDescription: '系统通知测试',
-          channelShowBadge: true,
-          enableVibration: true,
-        )
-      ],
-      channelGroups: [
-        NotificationChannelGroup(channelGroupKey: 'basic_channel_group', channelGroupName: '通知类别'),
-        NotificationChannelGroup(channelGroupKey: 'system_channel_group', channelGroupName: '系统通知组'),
-        NotificationChannelGroup(channelGroupKey: 'im_channel_group', channelGroupName: '聊天通知组'),
-      ],
-      debug: true,
+        onDidReceiveNotificationResponse: (NotificationResponse notify) {
+          final String? payload = notify.payload;
+          if (!CommonUtil.isEmpty(payload)) {
+            var notifyChannel = LocalNotifyMessageModel.fromJson(jsonDecode(payload!));
+            clickHandlerFun(notifyChannel);
+          }
+        },
+      );
+      defaultNotifyChannel = await createNotifyChannel('默认通知');
+    }
+  }
+
+  /// 创建通知渠道
+  static Future<LocalNotifyChannel> createNotifyChannel(String channelName) async {
+    var packageInfo = await DeviceUtil.getPackageInfo();
+    _notifyChannelCreateNum--;
+    return LocalNotifyChannel._(
+      _notifyChannelCreateNum,
+      CryptoUtil.md5(channelName),
+      channelName,
+      '$packageInfo.channel',
     );
   }
 
-  /// 请求通知权限
-  static Future<void> requestPermission() async {
-    hasPermission = await AwesomeNotifications().isNotificationAllowed();
-    if (hasPermission == false) {
-      hasPermission = await AwesomeNotifications().requestPermissionToSendNotifications(
-        // channelKey: 'basic_channel',
-        permissions: [
-          NotificationPermission.Alert,
-          NotificationPermission.Badge,
-          NotificationPermission.Light,
-          NotificationPermission.Vibration,
-        ],
-      );
+  /// 发送本地通知
+  static Future<void> send(
+    String title,
+    String content, {
+    LocalNotifyChannel? notifyChannel, // 通知渠道，默认使用defaultNotifyChannel
+    int? messageId, // 消息id，如果与之前的消息id相同，则会覆盖它，默认使用自增的消息id
+    Map? data, // 携带的额外数据
+  }) async {
+    if (instance == null) {
+      LoggerUtil.d('没有通知权限，不允许发送通知');
+      return;
     }
+    notifyChannel ??= defaultNotifyChannel;
+    var messageData = LocalNotifyMessageModel(notifyChannel.channelId, title, content, data ?? {});
+    instance!.show(
+      messageId ?? currentMessageId++,
+      title,
+      content,
+      _getNotifyDetails(notifyChannel),
+      payload: jsonEncode(messageData.toJson()),
+    );
+    if (GetPlatform.isAndroid) VibrateUtil.createVibrate();
+    _setGroup(notifyChannel); // 创建消息分组，只会创建一次，同时仅限android
+  }
+
+  /// 删除指定id的消息
+  static void delete(int id) {
+    getNotifys().then((notifyList) {
+      for (var item in notifyList) {
+        if (item.id == id) {
+          instance?.cancel(id);
+          break;
+        }
+      }
+    });
+  }
+
+  /// 获取系统上所有通知
+  static Future<List<ActiveNotification>> getNotifys() async {
+    List<ActiveNotification>? activeNotifications =
+        await instance?.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.getActiveNotifications();
+    if (activeNotifications != null) {
+      return activeNotifications;
+    } else {
+      return [];
+    }
+  }
+}
+
+/// 获取普通消息的详细信息
+NotificationDetails _getNotifyDetails(LocalNotifyChannel notifyChannel) {
+  AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    notifyChannel.channelId,
+    notifyChannel.channelName,
+    groupKey: notifyChannel.groupKey,
+    importance: Importance.high,
+    priority: Priority.high,
+    silent: true,
+    playSound: false,
+    enableVibration: false,
+    ticker: 'ticker',
+  );
+  DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+    presentBanner: false,
+    threadIdentifier: notifyChannel.groupKey,
+  );
+  return NotificationDetails(android: androidDetails, iOS: iosDetails);
+}
+
+/// 获取组消息的详细信息
+NotificationDetails _getGroupNotifyDetails(LocalNotifyChannel notifyChannel) {
+  AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    notifyChannel.channelId,
+    notifyChannel.channelName,
+    groupKey: notifyChannel.groupKey, // 对相同groupKey的消息进行合并分组
+    setAsGroupSummary: true, // 关键属性，true表示这条消息是组消息
+    importance: Importance.unspecified, // 组消息重要性设置最低
+    priority: Priority.min, // 组消息优先级设置最小
+  );
+  return NotificationDetails(android: androidDetails);
+}
+
+/// 对消息进行分组，如果当前消息组有多条消息，则会发送一条组消息进行分组，组消息可以重复发送，因为相同id会覆盖上一条消息,
+/// 注意：此行为仅限android，ios只需要设置相同的 threadIdentifier 属性即可
+Future<void> _setGroup(LocalNotifyChannel notifyChannel) async {
+  if (GetPlatform.isAndroid) {
+    List<ActiveNotification>? activeNotifications = await LocalNotifyUtil.instance!
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.getActiveNotifications();
+    if (activeNotifications != null) {
+      var groupNotifyList = activeNotifications.map((e) => e.groupKey == notifyChannel.groupKey).toList();
+      if (groupNotifyList.length > 1) {
+        await LocalNotifyUtil.instance!.show(notifyChannel.channelMessageId, '', '', _getGroupNotifyDetails(notifyChannel));
+      }
+    }
+  }
+}
+
+/// 消息通知渠道，请根据业务创建不同的消息通知类型，例如：聊天通知、物流通知等...
+class LocalNotifyChannel {
+  const LocalNotifyChannel._(
+    this.channelMessageId,
+    this.channelId,
+    this.channelName,
+    this.groupKey,
+  );
+
+  /// 渠道分组消息id，当发送第一条消息时，会再发送一条分组消息[_setGroup]，此消息会携带一个关键属性：setAsGroupSummary，
+  /// 这样才能够将相同渠道的消息归类、合并在一起
+  final int channelMessageId;
+
+  /// 渠道id
+  final String channelId;
+
+  /// 通知渠道名字，请不要随便填写，最好根据业务设置名字，它会在手机应用详情-通知权限中显示
+  final String channelName;
+
+  /// 组消息分组key，唯一字符串，默认：
+  final String groupKey;
+}
+
+/// 本地通知消息模型
+class LocalNotifyMessageModel {
+  /// 渠道分组消息id
+  late final String channelId;
+
+  /// 消息标题
+  late final String title;
+
+  /// 消息内容
+  late final String content;
+
+  /// 消息携带的额外数据
+  late final Map data;
+
+  LocalNotifyMessageModel(this.channelId, this.title, this.content, this.data);
+
+  LocalNotifyMessageModel.fromJson(Map json) {
+    channelId = json['channelId'] ?? -1;
+    title = json['title'] ?? '';
+    content = json['content'] ?? '';
+    data = json['data'] ?? {};
+  }
+
+  Map toJson() {
+    final map = {};
+    map['channelId'] = channelId;
+    map['title'] = title;
+    map['content'] = content;
+    map['data'] = data;
+    return map;
+  }
+
+  @override
+  String toString() {
+    return jsonEncode(this);
   }
 }

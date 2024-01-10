@@ -12,6 +12,9 @@ dependencies:
 #  my_flutter_plugin:
 #    git:
 #      url: https://gitee.com/luoyi666/my_flutter_plugin.git
+  my_flutter:
+    git:
+      url: https://gitee.com/luoyi666/my_flutter.git
   my_flutter_local_notify:
     path: ..
 

@@ -1,11 +1,11 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
+import 'package:my_flutter/my_flutter.dart';
 import 'package:my_flutter_local_notify/my_flutter_local_notify.dart';
 
-void main() async {
-  await LocalNotifyUtil.init();
+late final LocalNotifyChannel imNotifyChannel;
 
+void main() async {
+  await initMyFlutter();
   runApp(const MainApp());
 }
 
@@ -14,7 +14,7 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return const MyApp(
       home: HomePage(),
     );
   }
@@ -28,33 +28,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  bool? hasPermission;
-
-  @override
-  void initState() {
-    LocalNotifyUtil.requestPermission().then((value) {
-      Future.delayed(const Duration(milliseconds: 5000), () {
-        AwesomeNotifications().createNotification(
-          content: NotificationContent(
-            id: Random().nextInt(10000),
-            channelKey: 'basic_channel',
-            actionType: ActionType.Default,
-            title: 'Demo!',
-            body: '哈哈!',
-            // badge: 10,
-          ),
-        );
-      });
-    });
-    AwesomeNotifications().setListeners(
-        onActionReceivedMethod: NotificationController.onActionReceivedMethod,
-        onNotificationCreatedMethod: NotificationController.onNotificationCreatedMethod,
-        onNotificationDisplayedMethod: NotificationController.onNotificationDisplayedMethod,
-        onDismissActionReceivedMethod: NotificationController.onDismissActionReceivedMethod);
-
-    super.initState();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,86 +39,37 @@ class _HomePageState extends State<HomePage> {
           children: [
             ElevatedButton(
               onPressed: () {
-                AwesomeNotifications().createNotification(
-                  content: NotificationContent(
-                    id: Random().nextInt(10000),
-                    channelKey: 'basic_channel1',
-                    actionType: ActionType.Default,
-                    title: 'Hello World!',
-                    body: 'This is my first notification!',
-                    // badge: 10,
-                  ),
-                );
+                LocalNotifyUtil.send('global ${LocalNotifyUtil.currentMessageId}', '全局消息内容');
               },
-              child: const Text('发送通知1'),
+              child: const Text('发送系统通知'),
             ),
             ElevatedButton(
               onPressed: () {
-                AwesomeNotifications().createNotification(
-                  content: NotificationContent(
-                    id: Random().nextInt(10000),
-                    channelKey: 'basic_channel2',
-                    actionType: ActionType.Default,
-                    title: 'Hello World!',
-                    body: 'This is my first notification!',
-                    // badge: 10,
-                  ),
+                LocalNotifyUtil.send(
+                  'IM ${LocalNotifyUtil.currentMessageId}',
+                  '聊天消息内容',
+                  notifyChannel: imNotifyChannel,
                 );
               },
-              child: const Text('发送通知2'),
+              child: const Text('发送IM通知'),
             ),
             ElevatedButton(
-              onPressed: () {
-                AwesomeNotifications().createNotification(
-                  content: NotificationContent(
-                    id: Random().nextInt(10000),
-                    channelKey: 'system_channel',
-                    groupKey: 'system_channel_group',
-                    title: '系统通知',
-                    body: '这是一条系统消息',
-                    // badge: 10,
-                  ),
-                );
+              onPressed: () async {
+                await LocalNotifyUtil.init((model) {
+                  if (model.channelId == imNotifyChannel.channelId) {
+                    RouterUtil.to(const ChildPage(title: '通知跳转的页面'));
+                  } else {
+                    LoggerUtil.i(model);
+                    ToastUtil.showToast(model.title);
+                  }
+                });
+                imNotifyChannel = await LocalNotifyUtil.createNotifyChannel('聊天通知');
               },
-              child: const Text('系统通知'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // AwesomeNotifications().setGlobalBadgeCounter(10);
-                AwesomeNotifications().incrementGlobalBadgeCounter();
-              },
-              child: const Text('设置全局badge'),
+              child: const Text('初始化通知插件'),
             ),
           ],
         ),
       ),
     );
-  }
-}
-
-class NotificationController {
-  /// Use this method to detect when a new notification or a schedule is created
-  @pragma("vm:entry-point")
-  static Future<void> onNotificationCreatedMethod(ReceivedNotification receivedNotification) async {
-    // Your code goes here
-  }
-
-  /// Use this method to detect every time that a new notification is displayed
-  @pragma("vm:entry-point")
-  static Future<void> onNotificationDisplayedMethod(ReceivedNotification receivedNotification) async {
-    // Your code goes here
-  }
-
-  /// Use this method to detect if the user dismissed a notification
-  @pragma("vm:entry-point")
-  static Future<void> onDismissActionReceivedMethod(ReceivedAction receivedAction) async {
-    // Your code goes here
-  }
-
-  /// Use this method to detect when the user taps on a notification or action button
-  @pragma("vm:entry-point")
-  static Future<void> onActionReceivedMethod(ReceivedAction receivedAction) async {
-    // Your code goes here
-    debugPrint(receivedAction.title);
   }
 }
