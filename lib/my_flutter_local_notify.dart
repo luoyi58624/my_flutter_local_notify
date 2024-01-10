@@ -27,7 +27,7 @@ class LocalNotifyUtil {
   /// 初始化本地通知
   /// * icon 通知图标，默认为应用的icon图标，若你需要自定义，请将png图片放在android/app/src/main/res/drawable目录下，然后[icon]设置为图片的名字，注意不要加后缀
   /// * onClick 点击通知回调
-  static Future<void> init({
+  static Future<bool> init({
     String icon = '@mipmap/ic_launcher',
     NotifyClickHandler? onClick,
   }) async {
@@ -53,6 +53,9 @@ class LocalNotifyUtil {
               },
       );
       defaultNotifyChannel = await createNotifyChannel('默认通知');
+      return true;
+    } else {
+      return false;
     }
   }
 
