@@ -11,7 +11,7 @@ late final LocalNotifyChannel defaultNotifyChannel;
 
 typedef NotifyClickHandler = void Function(LocalNotifyMessageModel notifyChannel);
 
-/// 本地通知工具类，基于[flutter_local_notifications]插件，如果有离线通知需求请避免使用此插件。
+/// 本地通知工具类，基于[flutter_local_notifications]插件，如果有离线通知需求请避免使用此插件
 class LocalNotifyUtil {
   LocalNotifyUtil._();
 
@@ -25,8 +25,7 @@ class LocalNotifyUtil {
   static int _notifyChannelCreateNum = 0;
 
   /// 初始化本地通知
-  /// * clickHandlerFun 当用户点击系统通知时的回调函数
-  static Future<void> init(NotifyClickHandler clickHandlerFun) async {
+  static Future<void> init(NotifyClickHandler onClick) async {
     if (await PermissionUtil.requestPermission(Permission.notification)) {
       instance = FlutterLocalNotificationsPlugin();
       const AndroidInitializationSettings androidSetting = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -42,7 +41,7 @@ class LocalNotifyUtil {
           final String? payload = notify.payload;
           if (!CommonUtil.isEmpty(payload)) {
             var notifyChannel = LocalNotifyMessageModel.fromJson(jsonDecode(payload!));
-            clickHandlerFun(notifyChannel);
+            onClick(notifyChannel);
           }
         },
       );
