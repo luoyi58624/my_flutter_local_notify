@@ -58,14 +58,9 @@ class LocalNotifyUtil {
 
   /// 创建通知渠道
   static Future<LocalNotifyChannel> createNotifyChannel(String channelName) async {
-    var packageInfo = await DeviceUtil.getPackageInfo();
     _notifyChannelCreateNum--;
-    return LocalNotifyChannel._(
-      _notifyChannelCreateNum,
-      CryptoUtil.md5(channelName),
-      channelName,
-      '$packageInfo.channel',
-    );
+    var key = CryptoUtil.md5(channelName);
+    return LocalNotifyChannel._(_notifyChannelCreateNum, key, channelName, key);
   }
 
   /// 发送本地通知
@@ -125,7 +120,6 @@ NotificationDetails _getNotifyDetails(LocalNotifyChannel notifyChannel) {
     groupKey: notifyChannel.groupKey,
     importance: Importance.high,
     priority: Priority.high,
-    silent: true,
     playSound: false,
     enableVibration: false,
     ticker: 'ticker',
@@ -137,19 +131,6 @@ NotificationDetails _getNotifyDetails(LocalNotifyChannel notifyChannel) {
   return NotificationDetails(android: androidDetails, iOS: iosDetails);
 }
 
-/// 获取组消息的详细信息
-NotificationDetails _getGroupNotifyDetails(LocalNotifyChannel notifyChannel) {
-  AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-    notifyChannel.channelId,
-    notifyChannel.channelName,
-    groupKey: notifyChannel.groupKey, // 对相同groupKey的消息进行合并分组
-    setAsGroupSummary: true, // 关键属性，true表示这条消息是组消息
-    importance: Importance.unspecified, // 组消息重要性设置最低
-    priority: Priority.min, // 组消息优先级设置最小
-  );
-  return NotificationDetails(android: androidDetails);
-}
-
 /// 对消息进行分组，如果当前消息组有多条消息，则会发送一条组消息进行分组，组消息可以重复发送，因为相同id会覆盖上一条消息,
 /// 注意：此行为仅限android，ios只需要设置相同的 threadIdentifier 属性即可
 Future<void> _setGroup(LocalNotifyChannel notifyChannel) async {
@@ -157,10 +138,28 @@ Future<void> _setGroup(LocalNotifyChannel notifyChannel) async {
     List<ActiveNotification>? activeNotifications = await LocalNotifyUtil.instance!
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.getActiveNotifications();
+    activeNotifications?.forEach((e) {
+      LoggerUtil.i(e.groupKey);
+    });
     if (activeNotifications != null) {
       var groupNotifyList = activeNotifications.map((e) => e.groupKey == notifyChannel.groupKey).toList();
       if (groupNotifyList.length > 1) {
-        await LocalNotifyUtil.instance!.show(notifyChannel.channelMessageId, '', '', _getGroupNotifyDetails(notifyChannel));
+        LoggerUtil.i(notifyChannel.groupKey, '创建通知渠道');
+        await LocalNotifyUtil.instance!.show(
+          notifyChannel.channelMessageId,
+          '',
+          '',
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              notifyChannel.channelId,
+              notifyChannel.channelName,
+              groupKey: notifyChannel.groupKey, // 对相同groupKey的消息进行合并分组
+              setAsGroupSummary: true, // 关键属性，true表示这条消息是组消息
+              importance: Importance.unspecified, // 组消息重要性设置最低
+              priority: Priority.min, // 组消息优先级设置最小
+            ),
+          ),
+        );
       }
     }
   }
