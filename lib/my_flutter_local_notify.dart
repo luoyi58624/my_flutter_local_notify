@@ -25,11 +25,15 @@ class LocalNotifyUtil {
   static int _notifyChannelCreateNum = 0;
 
   /// 初始化本地通知
+  /// * icon 通知图标，默认为应用的icon图标，若你需要自定义，请将png图片放在android/app/src/main/res/drawable目录下，然后[icon]设置为图片的名字，注意不要加后缀
   /// * onClick 点击通知回调
-  static Future<void> init([NotifyClickHandler? onClick]) async {
+  static Future<void> init({
+    String icon = '@mipmap/ic_launcher',
+    NotifyClickHandler? onClick,
+  }) async {
     if (instance == null && await PermissionUtil.requestPermission(Permission.notification)) {
       instance = FlutterLocalNotificationsPlugin();
-      const AndroidInitializationSettings androidSetting = AndroidInitializationSettings('@mipmap/ic_launcher');
+      AndroidInitializationSettings androidSetting = AndroidInitializationSettings(icon);
       DarwinInitializationSettings iosSetting = const DarwinInitializationSettings(
         defaultPresentBanner: false,
       );

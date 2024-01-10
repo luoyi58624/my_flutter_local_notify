@@ -7,7 +7,7 @@ late final LocalNotifyChannel imNotifyChannel;
 void main() async {
   await initMyFlutter();
   CommonUtil.delayed(1000, () async {
-    await LocalNotifyUtil.init((model) {
+    await LocalNotifyUtil.init(onClick: (model) {
       if (model.channelId == imNotifyChannel.channelId) {
         RouterUtil.to(const ChildPage(title: '通知跳转的页面'));
       } else {
