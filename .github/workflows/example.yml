@@ -23,9 +23,8 @@ jobs:
           cache-key: 'flutter-:os:-:channel:-:version:-:arch:-:hash:'
           cache-path: '${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:'
       - run: sh ./script/example.sh
-      - name: Deploy Web
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Releases apk
+        uses: ncipollo/release-action@v1
         with:
-          branch: flutter_web_pages
-          folder: example/build/web
-          clean: true
+          artifacts: "build/app/outputs/flutter-apk/app-release.apk"
+          token: ${{ secrets.TOKEN }}
