@@ -26,7 +26,7 @@ class LocalNotifyUtil {
 
   /// 初始化本地通知
   static Future<void> init(NotifyClickHandler onClick) async {
-    if (await PermissionUtil.requestPermission(Permission.notification)) {
+    if (instance == null && await PermissionUtil.requestPermission(Permission.notification)) {
       instance = FlutterLocalNotificationsPlugin();
       const AndroidInitializationSettings androidSetting = AndroidInitializationSettings('@mipmap/ic_launcher');
       DarwinInitializationSettings iosSetting = const DarwinInitializationSettings(
