@@ -545,8 +545,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: deb4ea7e99d8f2e3e4aba627f12b61187b144f1d
+      ref: "v1.1.5"
+      resolved-ref: c123e712e7271204c6e2475cf05d093d95dc5b1b
       url: "https://gitee.com/luoyi666/my_flutter.git"
     source: git
     version: "1.1.5"
@@ -558,14 +558,14 @@ packages:
     source: path
     version: "0.0.1"
   my_flutter_plugin:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: e95beff2b4291c2e0f6d8faf3ba7820bf6ab5687
+      ref: "v1.1.5"
+      resolved-ref: "87e38fb80a2b139c323f8e0c8a065d12efa3a981"
       url: "https://gitee.com/luoyi666/my_flutter_plugin.git"
     source: git
-    version: "1.0.6"
+    version: "1.1.5"
   nm:
     dependency: transitive
     description:

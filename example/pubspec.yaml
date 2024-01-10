@@ -9,12 +9,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-#  my_flutter_plugin:
-#    git:
-#      url: https://gitee.com/luoyi666/my_flutter_plugin.git
+  my_flutter_plugin:
+    git:
+      url: https://gitee.com/luoyi666/my_flutter_plugin.git
+      ref: v1.1.5
   my_flutter:
     git:
       url: https://gitee.com/luoyi666/my_flutter.git
+      ref: v1.1.5
   my_flutter_local_notify:
     path: ..
 

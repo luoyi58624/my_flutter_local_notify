@@ -25,7 +25,8 @@ class LocalNotifyUtil {
   static int _notifyChannelCreateNum = 0;
 
   /// 初始化本地通知
-  static Future<void> init(NotifyClickHandler onClick) async {
+  /// * onClick 点击通知回调
+  static Future<void> init([NotifyClickHandler? onClick]) async {
     if (instance == null && await PermissionUtil.requestPermission(Permission.notification)) {
       instance = FlutterLocalNotificationsPlugin();
       const AndroidInitializationSettings androidSetting = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -37,13 +38,15 @@ class LocalNotifyUtil {
           android: androidSetting,
           iOS: iosSetting,
         ),
-        onDidReceiveNotificationResponse: (NotificationResponse notify) {
-          final String? payload = notify.payload;
-          if (!CommonUtil.isEmpty(payload)) {
-            var notifyChannel = LocalNotifyMessageModel.fromJson(jsonDecode(payload!));
-            onClick(notifyChannel);
-          }
-        },
+        onDidReceiveNotificationResponse: onClick == null
+            ? null
+            : (NotificationResponse notify) {
+                final String? payload = notify.payload;
+                if (!CommonUtil.isEmpty(payload)) {
+                  var notifyChannel = LocalNotifyMessageModel.fromJson(jsonDecode(payload!));
+                  onClick(notifyChannel);
+                }
+              },
       );
       defaultNotifyChannel = await createNotifyChannel('默认通知');
     }

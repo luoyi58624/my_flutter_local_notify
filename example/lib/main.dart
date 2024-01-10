@@ -6,6 +6,17 @@ late final LocalNotifyChannel imNotifyChannel;
 
 void main() async {
   await initMyFlutter();
+  CommonUtil.delayed(1000, () async {
+    await LocalNotifyUtil.init((model) {
+      if (model.channelId == imNotifyChannel.channelId) {
+        RouterUtil.to(const ChildPage(title: '通知跳转的页面'));
+      } else {
+        LoggerUtil.i(model);
+        ToastUtil.showToast(model.title);
+      }
+    });
+    imNotifyChannel = await LocalNotifyUtil.createNotifyChannel('聊天通知');
+  });
   runApp(const MainApp());
 }
 
@@ -52,20 +63,6 @@ class _HomePageState extends State<HomePage> {
                 );
               },
               child: const Text('发送IM通知'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await LocalNotifyUtil.init((model) {
-                  if (model.channelId == imNotifyChannel.channelId) {
-                    RouterUtil.to(const ChildPage(title: '通知跳转的页面'));
-                  } else {
-                    LoggerUtil.i(model);
-                    ToastUtil.showToast(model.title);
-                  }
-                });
-                imNotifyChannel = await LocalNotifyUtil.createNotifyChannel('聊天通知');
-              },
-              child: const Text('初始化通知插件'),
             ),
           ],
         ),
