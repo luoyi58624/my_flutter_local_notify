@@ -91,8 +91,8 @@ class LocalNotifyUtil {
     _setGroup(notifyChannel); // 创建消息分组，只会创建一次，同时仅限android
   }
 
-  /// 删除指定id的消息
-  static void delete(int id) {
+  /// 取消指定id的消息
+  static void cancel(int id) {
     getNotifys().then((notifyList) {
       for (var item in notifyList) {
         if (item.id == id) {
@@ -101,6 +101,11 @@ class LocalNotifyUtil {
         }
       }
     });
+  }
+
+  /// 取消所有消息
+  static void cancelAll() {
+    instance?.cancelAll();
   }
 
   /// 获取系统上所有通知

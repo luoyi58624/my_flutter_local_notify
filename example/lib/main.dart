@@ -64,6 +64,12 @@ class _HomePageState extends State<HomePage> {
               },
               child: const Text('发送IM通知'),
             ),
+            ElevatedButton(
+              onPressed: () {
+                LocalNotifyUtil.cancelAll();
+              },
+              child: const Text('清空通知'),
+            ),
           ],
         ),
       ),

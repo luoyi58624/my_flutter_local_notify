@@ -1,6 +1,6 @@
 name: my_flutter_local_notify
 description: "A new Flutter project."
-version: 1.0.4
+version: 1.0.5
 publish_to: none
 
 environment:
