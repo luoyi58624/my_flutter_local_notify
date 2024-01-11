@@ -87,7 +87,7 @@ class LocalNotifyUtil {
       _getNotifyDetails(notifyChannel),
       payload: jsonEncode(messageData.toJson()),
     );
-    if (GetPlatform.isAndroid) VibrateUtil.createVibrate();
+    if (GetPlatform.isMobile) VibrateUtil.createVibrate();
     _setGroup(notifyChannel); // 创建消息分组，只会创建一次，同时仅限android
   }
 
@@ -129,6 +129,7 @@ NotificationDetails _getNotifyDetails(LocalNotifyChannel notifyChannel) {
   );
   DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
     presentBanner: false,
+    presentSound: false,
     threadIdentifier: notifyChannel.groupKey,
   );
   return NotificationDetails(android: androidDetails, iOS: iosDetails);

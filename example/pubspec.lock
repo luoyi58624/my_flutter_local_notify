@@ -556,16 +556,16 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.0.2"
+    version: "1.0.3"
   my_flutter_plugin:
     dependency: "direct main"
     description:
       path: "."
-      ref: "v1.1.6"
-      resolved-ref: "3e0ace4a08e16557026ab3c48a5b315c19eb5de0"
+      ref: "v1.1.7"
+      resolved-ref: e258b1661d292557743262f279520dbdedbd7fcf
       url: "https://gitee.com/luoyi666/my_flutter_plugin.git"
     source: git
-    version: "1.1.6"
+    version: "1.1.7"
   nm:
     dependency: transitive
     description:
